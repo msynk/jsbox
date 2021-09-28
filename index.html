@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>jsbox demo</title>
+  </head>
+  <body>
+    <script src="jsbox.js"></script>
+    <script>
+      window.addEventListener("message", (msg) => {
+        console.log("message:", msg);
+
+        var data = msg.data;
+        if (!data.type) return;
+        switch (data.type) {
+          case "log":
+            return console.log(...data.value);
+          case "alert":
+            return alert(data.value);
+          default:
+            return;
+        }
+      });
+
+      var api = `
+        var api = {
+          receive: fn => window.addEventListener('message', fn),
+          send: data => window.parent.postMessage(data, '*'),
+          log: (...args) => api.send({
+              type: 'log',
+              value: args
+          }),
+          alert: value => api.send({
+              type: 'alert',
+              value: value
+          })
+        }
+      `;
+
+      var src = `(async function() {
+        api.receive(msg => console.log('iframe received a message:', msg.data))
+        
+        const respose = await fetch('https://jsonplaceholder.typicode.com/todos/10')
+        const json = await respose.json()
+        api.send(json)
+
+        api.log('%c jsbox rocks!', 'font-weight: bold; font-size: 50px;color: red; text-shadow: 3px 3px 0 rgb(217,31,38) , 6px 6px 0 rgb(226,91,14) , 9px 9px 0 rgb(245,221,8) , 12px 12px 0 rgb(5,148,68) , 15px 15px 0 rgb(2,135,206) , 18px 18px 0 rgb(4,77,145) , 21px 21px 0 rgb(42,21,113)')
+        
+        setTimeout(() => api.alert('hello'), 2000)
+      })()`;
+
+      var iframe = jsBox(src, api);
+
+      setTimeout(() => {
+        iframe.contentWindow.postMessage("a message from parent", "*");
+      }, 1000);
+    </script>
+  </body>
+</html>
